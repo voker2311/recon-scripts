@@ -18,7 +18,7 @@ startup_script(){
 subdomain_discovery(){
 	# Subdomain discovery starts from here
 	# Using findomain tool
-	echo "[*] Scan started at $(date) (Make sure that the filename will be saved based on the target name given)"
+	echo "[*] Subdomain scan started (Make sure that the filename will be saved based on the target name given)"
 	findomain=$(findomain -t "$target" --quiet | tee "recon-files/$target-findomain.txt")
 	sleep 0.3
 	echo "[*] Starting with subfinder tool"
