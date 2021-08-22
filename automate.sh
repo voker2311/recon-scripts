@@ -1,16 +1,17 @@
 #!/bin/bash
+# Author: Akshay Shinde
 
 TARGET=$1
 HOME=$(pwd)
 
 if [[ $# -eq 0 ]];then
-        echo "[-] Usage: ./automate.sh <TARGET.com>"
+        echo "[-] Usage: ./automate.sh <target.com>"
         exit 1;
 fi
 
 install_tools(){
 	# Get findomain
-	wget https://github.com/Findomain/Findomain/releases/download/5.0.0/findomain-linux -O findomain && mv findomain /usr/local/bin
+	wget --quiet https://github.com/Findomain/Findomain/releases/download/5.0.0/findomain-linux -O findomain && mv findomain /usr/local/bin
        	# Get subfinder
 	GO111MODULE=on go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder
 	# Get amass
@@ -31,28 +32,29 @@ install_tools(){
 }
 
 wrapper_for_files(){
+	cd $HOME
 	mkdir recon-files wordlist-making dnsgen-output censys-results
-	wget https://raw.githubusercontent.com/Voker2311/recon-scripts/main/combine.py -O wordlist-making
+	wget --quiet https://raw.githubusercontent.com/Voker2311/recon-scripts/main/combine.py -O $HOME/wordlist-making/combine.py
 }
 
 censys_api(){
-	cd censys-results
-	API_KEY="api_key" # Change this
-	SECRET="secret_key" # Change this
-	curl -s -X POST https://search.censys.io/api/v1/search/certificates -u $API_KEY:$SECRET -d '{"query":"$TARGET"}' | jq .results[] | grep subject_dn | grep -oE "CN=.*" | awk -F\" '{print $1}' | awk -F\= '{print $2}' | grep -v "*" | sort -u | grep -i "$TARGET" > censys-out.txt
-	shuffledns -silent -d $TARGET -list censys-out.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
+	cd $HOME/censys-results
+	API_KEY="5fcee053-56ad-44c1-bbc1-a903a74d29b5" # Change this
+	SECRET="umsD9exor1vSGwWDmM1bDR4SkkAhggqY" # Change this
+	curl -s -X POST https://search.censys.io/api/v1/search/certificates -u $API_KEY:$SECRET -d "{\"query\":\"$TARGET\"}" | jq .results[] | grep subject_dn | grep -oE "CN=.*" | awk -F\" '{print $1}' | awk -F\= '{print $2}' | grep -v "*" | sort -u | grep -i "$TARGET" > censys-out.txt
+	shuffledns -silent -d "$TARGET" -list censys-out.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
 }
 
 subdomain_discovery(){
-	cd recon-files
-	findomain --quiet -t "$TARGET" > "findomain.txt"
-	subfinder -silent -d "$TARGET" -t 15 -o "subdomains.txt"
-	subfinder -silent -d "$TARGET" -t 10 -o "recursive-domains.txt"
-	amass enum -d "$TARGET" -passive -o "amass.txt"
+	cd $HOME/recon-files
+	findomain --quiet -t "$TARGET" > findomain.txt
+	subfinder -silent -d "$TARGET" -t 15 > subdomains.txt
+	subfinder -silent -d "$TARGET" -t 10 > recursive-domains.txt
+	amass enum -d "$TARGET" -passive > amass.txt
 	curl -s "https://crt.sh/?q=$TARGET&output=json" | jq .[].name_value | tr '"' ' ' | awk '{gsub(/\\n/,"\n")}1' | awk '{print $1}' | sort -u > crt.txt
 	assetfinder "$TARGET" > assets.txt
 	cat *.txt | sort -u > discovery.subs
-	shuffledns -silent -d $TARGET -list discovery.subs -r /opt/massdns/lists/resolvers.txt > resolved.txt
+	shuffledns -silent -d "$TARGET" -list discovery.subs -r /opt/massdns/lists/resolvers.txt > resolved.txt
 	echo "[+] Check subdomains in recon-files"
 }
 
@@ -60,17 +62,17 @@ bruteforce(){
 	# Bruteforcing DNS names
 	echo "[*] Bruteforcing DNS, this might take a while"
 	echo "[:)] Go grab a coffee"
-	cd wordlist-making
-	wget https://wordlists-cdn.assetnote.io/data/manual/2m-subdomains.txt
+	cd $HOME/wordlist-making
+	wget --quiet https://wordlists-cdn.assetnote.io/data/manual/2m-subdomains.txt
 	#wget https://wordlists-cdn.assetnote.io/data/manual/best-dns-wordlist.txt
 	echo "[*] Checking the existence of combine.py"
 	if [ -f "combine.py" ];then
 		echo "[+] Started with 2m subdomains.."
-		python combine.py $TARGET "2m-subdomains.txt" > list1.txt
+		python3 combine.py "$TARGET" "2m-subdomains.txt" > list1.txt
 		sleep 5
 		#python combine.py $TARGET "best-dns-wordlist.txt" > list2.txt
 		cat list1.txt | sort -u > total-subs.txt
-		shuffledns -silent -d $TARGET -list total-subs.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
+		shuffledns -silent -d "$TARGET" -list total-subs.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
 	else
 		echo "[-] File not found"
 		exit 1;
@@ -84,7 +86,7 @@ dnsgen(){
 	cp $HOME/censys-results/resolved.txt 3.txt
 	cat * | sort -u > final.txt
 	dnsgen final.txt > permutations.txt
-	resolve_subs
+	#resolve_subs
 }
 
 resolve_subs(){
@@ -93,4 +95,25 @@ resolve_subs(){
 	cp dnsgen-resolved.txt $HOME/subs.txt
 }
 
-install_tools
+main(){
+	start_time=$(date "+%T")
+	epoch1=$(date "+%s" -d $start_time)
+	echo "[+] Scan started at $start_time"
+	#install_tools
+	echo "[*] Setting up the files"
+	wrapper_for_files
+	echo "[*] Subdomain discovery.."
+	subdomain_discovery
+	echo "[*] Fetching contents from censys api.."
+	censys_api
+	echo "[*] Bruteforcing using assetnote wordlist.."
+	bruteforce
+	echo "[*] Performing permutations on the subdomains found.."
+	dnsgen
+	end_time=$(date "+%T")
+	epoch2=$(date "+%s" -d $end_time)
+	tots=`expr $epoch2 - $epoch1`
+	echo "[+] Scan completed in `tots` secs"
+}
+
+main
