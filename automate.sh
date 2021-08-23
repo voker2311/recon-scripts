@@ -1,5 +1,4 @@
 #!/bin/bash
-# Author: Akshay Shinde
 
 TARGET=$1
 HOME=$(pwd)
@@ -33,14 +32,14 @@ install_tools(){
 
 wrapper_for_files(){
 	cd $HOME
-	mkdir recon-files wordlist-making dnsgen-output censys-results
+	mkdir recon-files wordlist-making dnsgen-output censys-results altdns-output
 	wget --quiet https://raw.githubusercontent.com/Voker2311/recon-scripts/main/combine.py -O $HOME/wordlist-making/combine.py
 }
 
 censys_api(){
 	cd $HOME/censys-results
-	API_KEY="" # Change this
-	SECRET="" # Change this
+	API_KEY="api_key" # Change this
+	SECRET="secret_key" # Change this
 	curl -s -X POST https://search.censys.io/api/v1/search/certificates -u $API_KEY:$SECRET -d "{\"query\":\"$TARGET\"}" | jq .results[] | grep subject_dn | grep -oE "CN=.*" | awk -F\" '{print $1}' | awk -F\= '{print $2}' | grep -v "*" | sort -u | grep -i "$TARGET" > censys-out.txt
 	shuffledns -silent -d "$TARGET" -list censys-out.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
 }
@@ -73,6 +72,7 @@ bruteforce(){
 		#python combine.py $TARGET "best-dns-wordlist.txt" > list2.txt
 		cat list1.txt | sort -u > total-subs.txt
 		shuffledns -silent -d "$TARGET" -list total-subs.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
+		rm 2m-subdomains.txt list1.txt total-subs.txt
 	else
 		echo "[-] File not found"
 		exit 1;
@@ -85,10 +85,16 @@ dnsgen(){
 	cp $HOME/recon-files/resolved.txt 2.txt
 	cp $HOME/censys-results/resolved.txt 3.txt
 	cat * | sort -u > final.txt
+	rm 1.txt 2.txt 3.txt
 	dnsgen final.txt > permutations.txt
-	#resolve_subs
+	resolve_subs
 }
 
+altdns(){
+	cd $HOME/altdns-output
+	cp $HOME/dnsgen-output/final.txt .
+	altdns -i final.txt -o permutations -w /opt/altdns/words.txt -r -s altdns_output.txt
+}
 resolve_subs(){
 	cd $HOME/dnsgen-output
 	/opt/massdns/bin/massdns -r /opt/massdns/lists/resolvers.txt -t A -q -o S permutations.txt > dnsgen-resolved.txt
@@ -110,10 +116,12 @@ main(){
 	bruteforce
 	echo "[*] Performing permutations on the subdomains found.."
 	dnsgen
+	echo "[*] Using altdns to generate words with dev,staging,etc"
+	altdns # Optional
 	end_time=$(date "+%T")
 	epoch2=$(date "+%s" -d $end_time)
 	tots=`expr $epoch2 - $epoch1`
-	echo "[+] Scan completed in `tots` secs"
+	echo "[+] Scan completed in "$tots" secs"
 }
 
 main
