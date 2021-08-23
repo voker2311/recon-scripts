@@ -39,8 +39,8 @@ wrapper_for_files(){
 
 censys_api(){
 	cd $HOME/censys-results
-	API_KEY="5fcee053-56ad-44c1-bbc1-a903a74d29b5" # Change this
-	SECRET="umsD9exor1vSGwWDmM1bDR4SkkAhggqY" # Change this
+	API_KEY="" # Change this
+	SECRET="" # Change this
 	curl -s -X POST https://search.censys.io/api/v1/search/certificates -u $API_KEY:$SECRET -d "{\"query\":\"$TARGET\"}" | jq .results[] | grep subject_dn | grep -oE "CN=.*" | awk -F\" '{print $1}' | awk -F\= '{print $2}' | grep -v "*" | sort -u | grep -i "$TARGET" > censys-out.txt
 	shuffledns -silent -d "$TARGET" -list censys-out.txt -r /opt/massdns/lists/resolvers.txt > resolved.txt
 }
