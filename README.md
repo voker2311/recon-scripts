@@ -2,7 +2,8 @@
 A simple script to automate the process of asset discovery using different open source tools. Feel free to use different set of wordlists according to your convenience.
 
 ## Usage
-- Setup a VPS to make all the installation (DigitalOcean - Preferred) 
+- Setup a VPS to make all the installation (DigitalOcean - Preferred)
+- Create free account on [censys](https://censys.io/), get the API and SECRET key and add it into the script
 - Make sure to add install_tools in the main function.
 - Use different subdomain wordlists like all.txt ~ Jhaddix or assetnote [wordlists](https://wordlists.assetnote.io/).
 ```
