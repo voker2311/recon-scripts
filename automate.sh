@@ -107,6 +107,7 @@ main(){
 	echo "[+] Scan started at $start_time"
 	#install_tools
 	echo "[*] Setting up the files"
+	ulimit -n 524288 # Set this limit as it will most likely encounter too many files open error
 	wrapper_for_files
 	echo "[*] Subdomain discovery.."
 	subdomain_discovery
