@@ -7,6 +7,7 @@ A simple script to automate the process of asset discovery using different open 
 - Make sure to add install_tools in the main function.
 - Use different subdomain wordlists like all.txt ~ Jhaddix or assetnote [wordlists](https://wordlists.assetnote.io/).
 - Edit the cron.sh file to add the location of your target dir
+- Also edit the provider-config.yml file of [notify](https://github.com/projectdiscovery/notify) project
 ```
 # mkdir target.com && mv automate.sh target.com
 # ./cron.sh target.com
