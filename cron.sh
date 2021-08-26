@@ -1,11 +1,16 @@
 #!/bin/bash
+target=$1
 
-target="target.com"
+if [[ $# -eq 0 ]];then                                                                                                                                                                        
+        echo "[-] Usage: ./cron.sh <target.com>"                                           
+        exit 1;                                                                                
+fi
+
 location="location_to_target_dir" # Change this
 cd $location
 
 # Place automate.sh in target_dir
-$location/automate.sh $target
+./automate.sh $target
 
 if [ ! -d $location/subslive ];then
        mkdir subslive
