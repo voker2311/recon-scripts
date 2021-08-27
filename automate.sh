@@ -32,7 +32,7 @@ install_tools(){
 
 wrapper_for_files(){
 	cd $HOME
-	mkdir ip-based recon-files wordlist-making dnsgen-output censys-results altdns-output
+	mkdir ip-based recon-files wordlist-making dnsgen-output censys-results altdns-output 2>/dev/null
 	wget --quiet https://raw.githubusercontent.com/Voker2311/recon-scripts/main/combine.py -O $HOME/wordlist-making/combine.py
 }
 
@@ -90,12 +90,6 @@ dnsgen(){
 	#resolve_subs
 }
 
-altdns(){
-	cd $HOME/altdns-output
-	cp $HOME/dnsgen-output/final.txt .
-	altdns -i final.txt -o permutations -w /opt/altdns/words.txt -r -s altdns_output.txt
-}
-
 resolve_subs(){
 	cd $HOME/dnsgen-output
 	/opt/massdns/bin/massdns -r /opt/massdns/lists/resolvers.txt -t A -q -o S permutations.txt > dnsgen-resolved.txt
@@ -146,12 +140,10 @@ main(){
 	echo "[*] Extracting IP Addresses"
 	extract_ips
 	echo "[*] Run naabu tool on the list of ips"
-	#echo "[*] Using altdns to generate words with dev,staging,etc"
-	#altdns
 	end_time=$(date "+%T")
 	epoch2=$(date "+%s" -d $end_time)
 	tots=`expr $epoch2 - $epoch1`
 	echo "[+] Scan completed in "$tots" secs"
 }
 
-extract_ips
+main
