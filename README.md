@@ -22,5 +22,4 @@ A simple script to automate the process of asset discovery using different open 
 ```
 
 ## TODO
-- Add a cron job to run the script alteast twice a day
 - Subdomain takeover function to be implemented
